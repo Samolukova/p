@@ -16,14 +16,11 @@ def parse(lines):
 
 def is_goal(state):
     hallway, rooms = state
-    if any(c != '.' for c in hallway):
-        return False
     for i, room in enumerate(rooms):
         goal = "ABCD"[i]
-        for c in room:
-            if c != goal:
-                return False
-    return True
+        if any(c != goal for c in room):
+            return False
+    return hallway == "..........."
 
 def next_moves(state):
     hallway, rooms = state
