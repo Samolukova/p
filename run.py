@@ -8,10 +8,14 @@ ROOM_INDEX = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 ALLOWED_HALL_POS = [0, 1, 3, 5, 7, 9, 10]
 
 def parse(lines):
-    depth = len(lines) - 3
+    norm = [line.ljust(13, ' ') for line in lines]
+    depth = len(norm) - 3  # 2 для 5 строк, 4 для 7 строк
     rooms = []
     for i in range(4):
-        rooms.append(tuple(lines[j][3 + 2*i] for j in range(2, 2 + depth)))
+        col = []
+        for j in range(2, 2 + depth):
+            col.append(norm[j][3 + 2 * i])
+        rooms.append(tuple(col))
     return ("." * 11, tuple(rooms))
 
 def is_goal(state):
@@ -91,7 +95,9 @@ def solve(lines: list[str]) -> int:
     return -1
 
 def main():
-    lines = [line.rstrip('\n') for line in sys.stdin if line.strip()]
+    lines = []
+    for line in sys.stdin:
+        lines.append(line.rstrip('\n'))
     result = solve(lines)
     print(result)
 
