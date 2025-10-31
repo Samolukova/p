@@ -7,13 +7,13 @@ ROOM_INDEX = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 ALLOWED_HALL_POS = [0, 1, 3, 5, 7, 9, 10]
 
 def parse(lines):
-    depth = len(lines) - 2
+    row1 = lines[2].ljust(13, ' ')
+    row2 = lines[3].ljust(13, ' ')
     rooms = []
     for i in range(4):
-        col = []
-        for j in range(2, 2 + depth):
-            col.append(lines[j][3 + 2*i])
-        rooms.append(tuple(col))
+        c1 = row1[3 + 2*i]
+        c2 = row2[3 + 2*i]
+        rooms.append((c1, c2))
     return ("." * 11, tuple(rooms))
 
 def is_goal(state):
