@@ -38,48 +38,44 @@ def next_moves(state):
             if c != '.':
                 break
         pos = ROOMS[goal_type]
-        for direction in (-1, 1):
+        for dir in (-1, 1):
             p = pos
-            while 0 <= p + direction < 11 and hallway[p + direction] == '.':
-                p += direction
+            while 0 <= p + dir < 11 and hallway[p + dir] == '.':
+                p += dir
                 if p in ALLOWED_HALL_POS:
-                    new_hallway = list(hallway)
-                    new_hallway[p] = c
+                    new_h = list(hallway)
+                    new_h[p] = c
                     new_rooms = [list(r) for r in rooms]
                     new_rooms[i][d] = '.'
                     dist = abs(p - pos) + d + 1
-                    new_state = (''.join(new_hallway), tuple(tuple(rr) for rr in new_rooms))
-                    moves.append((new_state, dist * COST[c]))
-
+                    moves.append((
+                        (''.join(new_h), tuple(tuple(rr) for rr in new_rooms)),
+                        dist * COST[c]
+                    ))
     for i, c in enumerate(hallway):
         if c == '.':
             continue
-        target_room_idx = ROOM_INDEX[c]
+        target_room = ROOM_INDEX[c]
         target_pos = ROOMS[c]
-        room = rooms[target_room_idx]
-        if any(x != '.' and x != c for x in room):
+        if any(x != '.' and x != c for x in rooms[target_room]):
             continue
         step = 1 if target_pos > i else -1
-        blocked = False
-        for j in range(i + step, target_pos + step, step):
-            if 0 <= j < 11 and hallway[j] != '.' and j not in [2, 4, 6, 8]:
-                blocked = True
-                break
-        if blocked:
-            continue
-        for d in reversed(range(depth)):
-            if room[d] == '.':
-                new_hallway = list(hallway)
-                new_hallway[i] = '.'
-                new_rooms = [list(r) for r in rooms]
-                new_rooms[target_room_idx][d] = c
-                dist = abs(target_pos - i) + d + 1
-                new_state = (''.join(new_hallway), tuple(tuple(rr) for rr in new_rooms))
-                moves.append((new_state, dist * COST[c]))
-                break
+        if all(hallway[j] == '.' for j in range(i + step, target_pos + step, step) if j != target_pos):
+            for d in reversed(range(depth)):
+                if rooms[target_room][d] == '.':
+                    new_h = list(hallway)
+                    new_h[i] = '.'
+                    new_rooms = [list(r) for r in rooms]
+                    new_rooms[target_room][d] = c
+                    dist = abs(target_pos - i) + d + 1
+                    moves.append((
+                        (''.join(new_h), tuple(tuple(rr) for rr in new_rooms)),
+                        dist * COST[c]
+                    ))
+                    break
     return moves
 
-def solve(lines):
+def solve(lines: list[str]) -> int:
     start = parse(lines)
     pq = [(0, start)]
     best = {start: 0}
@@ -98,8 +94,7 @@ def solve(lines):
     return -1
 
 def main():
-    lines = [line.rstrip('\n') for line in sys.stdin]
-    lines = [line for line in lines if line.strip() != ''][:5]
+    lines = [line.rstrip('\n') for line in sys.stdin if line.strip()]
     result = solve(lines)
     print(result)
 
