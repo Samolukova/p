@@ -1,3 +1,4 @@
+
 import heapq
 import sys
 
@@ -7,13 +8,10 @@ ROOM_INDEX = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
 ALLOWED_HALL_POS = [0, 1, 3, 5, 7, 9, 10]
 
 def parse(lines):
-    row1 = lines[2].ljust(13, ' ')
-    row2 = lines[3].ljust(13, ' ')
+    depth = len(lines) - 3
     rooms = []
     for i in range(4):
-        c1 = row1[3 + 2*i]
-        c2 = row2[3 + 2*i]
-        rooms.append((c1, c2))
+        rooms.append(tuple(lines[j][3 + 2*i] for j in range(2, 2 + depth)))
     return ("." * 11, tuple(rooms))
 
 def is_goal(state):
