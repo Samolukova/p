@@ -18,7 +18,6 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
     result = []
     while True:
         dist = bfs_distances(graph, virus_pos, blocked)
-        
         gateways_with_dist = {
             node: d for node, d in dist.items() if node.isupper()
         }
