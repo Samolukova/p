@@ -16,7 +16,6 @@ def solve(edges: list[tuple[str, str]]) -> list[str]:
     virus_pos = 'a'
     blocked = set()
     result = []
-
     while True:
         dist = bfs_distances(graph, virus_pos, blocked)
         
@@ -73,7 +72,6 @@ def bfs_distances(graph, start, blocked):
                 queue.append(v)
     return dist
 
-
 def find_virus_next_move(graph, current, blocked):
     dist = bfs_distances(graph, current, blocked)
     gateways = {node: d for node, d in dist.items() if node.isupper()}
@@ -96,7 +94,6 @@ def find_virus_next_move(graph, current, blocked):
     else:
         return current
 
-
 def bfs_distances_from_target(graph, start, blocked):
     return bfs_distances(graph, start, blocked)
 
@@ -112,7 +109,6 @@ def main():
     result = solve(edges)
     for edge in result:
         print(edge)
-
 
 if __name__ == "__main__":
     main()
