@@ -1,105 +1,118 @@
-
-import heapq
 import sys
+from collections import deque, defaultdict
 
-COST = {'A': 1, 'B': 10, 'C': 100, 'D': 1000}
-ROOMS = {'A': 2, 'B': 4, 'C': 6, 'D': 8}
-ROOM_INDEX = {'A': 0, 'B': 1, 'C': 2, 'D': 3}
-ALLOWED_HALL_POS = [0, 1, 3, 5, 7, 9, 10]
+def solve(edges: list[tuple[str, str]]) -> list[str]:
+    graph = defaultdict(list)
+    gateway_edges = set()
+    
+    for u, v in edges:
+        graph[u].append(v)
+        graph[v].append(u)
+        if u.isupper() and not v.isupper():
+            gateway_edges.add((u, v))
+        elif v.isupper() and not u.isupper():
+            gateway_edges.add((v, u))
+    
+    virus_pos = 'a'
+    blocked = set()
+    result = []
 
-def parse(lines):
-    norm = [line.ljust(13, ' ') for line in lines]
-    depth = len(norm) - 3  # 2 для 5 строк, 4 для 7 строк
-    rooms = []
-    for i in range(4):
-        col = []
-        for j in range(2, 2 + depth):
-            col.append(norm[j][3 + 2 * i])
-        rooms.append(tuple(col))
-    return ("." * 11, tuple(rooms))
+    while True:
+        dist = bfs_distances(graph, virus_pos, blocked)
+        
+        gateways_with_dist = {
+            node: d for node, d in dist.items() if node.isupper()
+        }
+        
+        if not gateways_with_dist:
+            break
 
-def is_goal(state):
-    hallway, rooms = state
-    for i, room in enumerate(rooms):
-        goal = "ABCD"[i]
-        if any(c != goal for c in room):
-            return False
-    return hallway == "..........."
+        min_dist = min(gateways_with_dist.values())
+        target_gateway = min(g for g, d in gateways_with_dist.items() if d == min_dist)
 
-def next_moves(state):
-    hallway, rooms = state
-    moves = []
-    depth = len(rooms[0])
+        candidates = []
+        for neighbor in graph[target_gateway]:
+            if not neighbor.isupper():
+                edge = (target_gateway, neighbor)
+                if edge not in blocked:
+                    candidates.append(edge)
+        
+        if not candidates:
+            break
 
-    for i, room in enumerate(rooms):
-        goal_type = "ABCD"[i]
-        if all(c == '.' or c == goal_type for c in room):
+        to_block = min(candidates, key=lambda x: (x[0], x[1]))
+        result.append(f"{to_block[0]}-{to_block[1]}")
+        blocked.add(to_block)
+
+        virus_pos = find_virus_next_move(graph, virus_pos, blocked)
+
+        if len(result) > 100:
+            break
+
+    return result
+
+
+def bfs_distances(graph, start, blocked):
+    blocked_set = set()
+    for g, u in blocked:
+        blocked_set.add((g, u))
+        blocked_set.add((u, g))
+
+    def can_go(u, v):
+        return (u, v) not in blocked_set
+
+    dist = {}
+    queue = deque([start])
+    dist[start] = 0
+
+    while queue:
+        u = queue.popleft()
+        for v in graph[u]:
+            if v not in dist and can_go(u, v):
+                dist[v] = dist[u] + 1
+                queue.append(v)
+    return dist
+
+
+def find_virus_next_move(graph, current, blocked):
+    dist = bfs_distances(graph, current, blocked)
+    gateways = {node: d for node, d in dist.items() if node.isupper()}
+    if not gateways:
+        return current
+
+    min_d = min(gateways.values())
+    target = min(g for g, d in gateways.items() if d == min_d)
+    dist_from_target = bfs_distances_from_target(graph, target, blocked)
+    
+    next_candidates = []
+    for nb in sorted(graph[current]):
+        if (current, nb) in [(g, u) for g, u in blocked] or (nb, current) in [(g, u) for g, u in blocked]:
             continue
-        for d, c in enumerate(room):
-            if c != '.':
-                break
-        pos = ROOMS[goal_type]
-        for dir in (-1, 1):
-            p = pos
-            while 0 <= p + dir < 11 and hallway[p + dir] == '.':
-                p += dir
-                if p in ALLOWED_HALL_POS:
-                    new_h = list(hallway)
-                    new_h[p] = c
-                    new_rooms = [list(r) for r in rooms]
-                    new_rooms[i][d] = '.'
-                    dist = abs(p - pos) + d + 1
-                    moves.append((
-                        (''.join(new_h), tuple(tuple(rr) for rr in new_rooms)),
-                        dist * COST[c]
-                    ))
-    for i, c in enumerate(hallway):
-        if c == '.':
-            continue
-        target_room = ROOM_INDEX[c]
-        target_pos = ROOMS[c]
-        if any(x != '.' and x != c for x in rooms[target_room]):
-            continue
-        step = 1 if target_pos > i else -1
-        if all(hallway[j] == '.' for j in range(i + step, target_pos + step, step) if j != target_pos):
-            for d in reversed(range(depth)):
-                if rooms[target_room][d] == '.':
-                    new_h = list(hallway)
-                    new_h[i] = '.'
-                    new_rooms = [list(r) for r in rooms]
-                    new_rooms[target_room][d] = c
-                    dist = abs(target_pos - i) + d + 1
-                    moves.append((
-                        (''.join(new_h), tuple(tuple(rr) for rr in new_rooms)),
-                        dist * COST[c]
-                    ))
-                    break
-    return moves
+        if dist_from_target.get(nb, float('inf')) == dist_from_target.get(current, float('inf')) - 1:
+            next_candidates.append(nb)
 
-def solve(lines: list[str]) -> int:
-    start = parse(lines)
-    pq = [(0, start)]
-    best = {start: 0}
+    if next_candidates:
+        return min(next_candidates)
+    else:
+        return current
 
-    while pq:
-        cost, state = heapq.heappop(pq)
-        if is_goal(state):
-            return cost
-        if cost > best[state]:
-            continue
-        for nstate, move_cost in next_moves(state):
-            new_cost = cost + move_cost
-            if new_cost < best.get(nstate, float('inf')):
-                best[nstate] = new_cost
-                heapq.heappush(pq, (new_cost, nstate))
-    return -1
+
+def bfs_distances_from_target(graph, start, blocked):
+    return bfs_distances(graph, start, blocked)
 
 def main():
-    lines = []
+    edges = []
     for line in sys.stdin:
-        lines.append(line.rstrip('\n'))
-    result = solve(lines)
-    print(result)
+        line = line.strip()
+        if line:
+            node1, sep, node2 = line.partition('-')
+            if sep:
+                edges.append((node1, node2))
+
+    result = solve(edges)
+    for edge in result:
+        print(edge)
+
 
 if __name__ == "__main__":
     main()
